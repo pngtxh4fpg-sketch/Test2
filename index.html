@@ -2,62 +2,132 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>3D Malibu Response V8 Simulator</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #87CEEB; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #87CEEB; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
         #canvas-container { width: 100vw; height: 100vh; }
         
         #dashboard {
             position: absolute;
-            bottom: 30px;
-            right: 30px;
+            top: 20px;
+            right: 20px;
             background: rgba(0, 0, 0, 0.7);
-            padding: 20px;
-            border-radius: 15px;
+            padding: 12px;
+            border-radius: 12px;
             color: #00ffcc;
             border: 2px solid #333;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            min-width: 200px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            min-width: 120px;
+            pointer-events: none;
         }
         
-        .gauge { margin-bottom: 10px; }
-        .gauge-title { font-size: 12px; color: #aaa; text-transform: uppercase; letter-spacing: 1px;}
-        .gauge-value { font-size: 32px; font-weight: bold; text-shadow: 0 0 10px #00ffcc; }
+        .gauge { margin-bottom: 5px; }
+        .gauge-title { font-size: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 1px;}
+        .gauge-value { font-size: 22px; font-weight: bold; text-shadow: 0 0 10px #00ffcc; }
         
         #instructions {
             position: absolute;
-            top: 30px;
-            left: 30px;
+            top: 20px;
+            left: 20px;
             background: rgba(0, 0, 0, 0.6);
-            padding: 20px;
+            padding: 12px;
             border-radius: 10px;
             color: white;
             pointer-events: none;
+            max-width: 200px;
         }
-        h1 { margin: 0 0 10px 0; font-size: 24px; color: #ff3366; }
-        p { margin: 5px 0; font-size: 14px; }
-        .key { display: inline-block; background: #eee; color: black; padding: 2px 8px; border-radius: 4px; font-weight: bold; margin: 0 2px; }
+        h1 { margin: 0 0 5px 0; font-size: 16px; color: #ff3366; }
+        p { margin: 2px 0; font-size: 11px; }
+
+        /* TOUCH CONTROLS */
+        .touch-container {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-sizing: border-box;
+            z-index: 10;
+        }
+
+        .touch-group {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            width: 70px;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.25);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn:active {
+            background: rgba(255, 51, 102, 0.6);
+            transform: scale(0.95);
+        }
+
+        .btn-pedal {
+            border-radius: 15px;
+            width: 65px;
+            height: 80px;
+            font-size: 14px;
+        }
+
+        /* Am PC Touch-Buttons etwas dezenter machen oder anzeigen */
+        @media (min-width: 1024px) {
+            .touch-container { opacity: 0.7; }
+        }
     </style>
 </head>
 <body>
 
     <div id="instructions">
-        <h1>Malibu Response 5.7L V8</h1>
-        <p><span class="key">W</span> Gas geben (340 PS)</p>
-        <p><span class="key">S</span> Bremsen / Rückwärts</p>
-        <p><span class="key">A</span> <span class="key">D</span> Lenken</p>
-        <p style="margin-top: 15px; font-size: 12px; color: #aaa;">Beobachte, wie sich der Bug beim Beschleunigen hebt<br>und echte Wellen im 3D-Wasser entstehen.</p>
+        <h1>Malibu Response V8</h1>
+        <p>Achtung: Physik & Wellen in Echtzeit!</p>
     </div>
 
     <div id="dashboard">
         <div class="gauge">
             <div class="gauge-title">Speed</div>
-            <div class="gauge-value" id="ui-speed">0 <span style="font-size:16px">km/h</span></div>
+            <div class="gauge-value" id="ui-speed">0 <span style="font-size:12px">km/h</span></div>
         </div>
         <div class="gauge">
-            <div class="gauge-title">Engine RPM</div>
+            <div class="gauge-title">RPM</div>
             <div class="gauge-value" id="ui-rpm" style="color: #ff3366; text-shadow: 0 0 10px #ff3366;">800</div>
+        </div>
+    </div>
+
+    <!-- TOUCH STEUERUNG FÜR HANDY -->
+    <div class="touch-container">
+        <!-- Lenkung Links -->
+        <div class="touch-group">
+            <div class="btn" id="btn-a">◀</div>
+            <div class="btn" id="btn-d">▶</div>
+        </div>
+        <!-- Gas / Bremse Rechts -->
+        <div class="touch-group">
+            <div class="btn btn-pedal" id="btn-s" style="background: rgba(255, 0, 0, 0.3);">BREMSE</div>
+            <div class="btn btn-pedal" id="btn-w" style="background: rgba(0, 255, 128, 0.3);">GAS</div>
         </div>
     </div>
 
@@ -66,12 +136,13 @@
 
         // --- SETUP SCENE ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87CEEB); // Himmelblau
+        scene.background = new THREE.Color(0x87CEEB);
         scene.fog = new THREE.FogExp2(0x87CEEB, 0.005);
 
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Performance auf Handys optimieren
         renderer.shadowMap.enabled = true;
         document.body.appendChild(renderer.domElement);
 
@@ -80,13 +151,11 @@
         scene.add(ambientLight);
         const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
         dirLight.position.set(100, 100, 50);
-        dirLight.castShadow = true;
         scene.add(dirLight);
 
-        // --- DAS WASSER (Verformbares Mesh) ---
-        // Große Plane, viele Segmente für echte Vertex-Verformung
-        const waterSize = 400;
-        const waterSegments = 150; 
+        // --- DAS WASSER ---
+        const waterSize = 300;
+        const waterSegments = 100; // Für flüssige Performance auf Mobilgeräten leicht angepasst
         const waterGeometry = new THREE.PlaneGeometry(waterSize, waterSize, waterSegments, waterSegments);
         waterGeometry.rotateX(-Math.PI / 2);
 
@@ -94,51 +163,40 @@
             color: 0x006994,
             transparent: true,
             opacity: 0.9,
-            shininess: 100,
-            specular: 0x111111,
-            flatShading: true // Macht die Wellen sichtbarer
+            shininess: 80,
+            flatShading: true
         });
         const water = new THREE.Mesh(waterGeometry, waterMaterial);
-        water.receiveShadow = true;
         scene.add(water);
 
-        // Speicher für die Original-Vertices für die Wellenberechnung
         const originalPositions = Array.from(waterGeometry.attributes.position.array);
-        const wakes = []; // Speichert Boot-Positionen für dynamische Bugwellen
+        const wakes = [];
 
-        // --- DAS BOOT (Malibu Response Style) ---
+        // --- DAS BOOT ---
         const boat = new THREE.Group();
         scene.add(boat);
 
         // Rumpf
         const hullGeo = new THREE.BoxGeometry(2.2, 1, 5);
-        const hullMat = new THREE.MeshPhongMaterial({ color: 0xcc0000 }); // Malibu Rot
+        const hullMat = new THREE.MeshPhongMaterial({ color: 0xcc0000 });
         const hull = new THREE.Mesh(hullGeo, hullMat);
         hull.position.y = 0.2;
-        hull.castShadow = true;
         boat.add(hull);
 
-        // Deck (Weiß)
+        // Deck
         const deckGeo = new THREE.BoxGeometry(2.3, 0.2, 5.1);
         const deckMat = new THREE.MeshPhongMaterial({ color: 0xffffff });
         const deck = new THREE.Mesh(deckGeo, deckMat);
         deck.position.y = 0.7;
         boat.add(deck);
 
-        // Bug (Spitze)
+        // Bug
         const bowGeo = new THREE.CylinderGeometry(0, 1.15, 2, 3);
         const bow = new THREE.Mesh(bowGeo, hullMat);
         bow.rotation.x = Math.PI / 2;
         bow.rotation.y = -Math.PI / 2;
         bow.position.set(0, 0.2, -3.5);
         boat.add(bow);
-        
-        const bowDeck = new THREE.Mesh(bowGeo, deckMat);
-        bowDeck.rotation.x = Math.PI / 2;
-        bowDeck.rotation.y = -Math.PI / 2;
-        bowDeck.position.set(0, 0.7, -3.5);
-        bowDeck.scale.set(1.05, 1, 1.05);
-        boat.add(bowDeck);
 
         // Windschutzscheibe
         const glassGeo = new THREE.BoxGeometry(1.8, 0.6, 0.1);
@@ -148,7 +206,7 @@
         glass.rotation.x = -Math.PI / 6;
         boat.add(glass);
 
-        // Wakeboard Tower (Typisch für Malibu)
+        // Tower
         const towerGeo = new THREE.TorusGeometry(1.1, 0.05, 8, 24, Math.PI);
         const towerMat = new THREE.MeshPhongMaterial({ color: 0x111111 });
         const tower = new THREE.Mesh(towerGeo, towerMat);
@@ -156,46 +214,53 @@
         tower.rotation.x = -0.2;
         boat.add(tower);
 
-        // --- GISCHT PARTIKEL (Foam) ---
-        const particleCount = 100;
-        const particles = [];
-        const particleGeo = new THREE.BoxGeometry(0.3, 0.3, 0.3);
-        const particleMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 });
-        for(let i=0; i<particleCount; i++) {
-            const p = new THREE.Mesh(particleGeo, particleMat);
-            p.visible = false;
-            scene.add(p);
-            particles.push({ mesh: p, life: 0, maxLife: 1 });
-        }
-        let particleIndex = 0;
-
-        // --- PHYSIK & VARIABLEN ---
+        // --- PHYSIK & STEUERUNG ---
         const physics = {
             speed: 0,
-            maxSpeed: 22, // m/s (~80 km/h)
-            acceleration: 6, // V8 Power
-            drag: 0.98, // Wasserwiderstand
+            maxSpeed: 22,
+            acceleration: 6,
+            drag: 0.98,
             heading: Math.PI,
-            turnRate: 0,
             rpm: 800,
             throttle: 0
         };
 
         const keys = { w: false, a: false, s: false, d: false };
 
+        // TASTATUR STEUERUNG (PC)
         window.addEventListener('keydown', (e) => {
-            if(e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') keys.w = true;
-            if(e.key === 's' || e.key === 'S' || e.key === 'ArrowDown') keys.s = true;
-            if(e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') keys.a = true;
-            if(e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') keys.d = true;
+            if (e.key.toLowerCase() === 'w' || e.key === 'ArrowUp') keys.w = true;
+            if (e.key.toLowerCase() === 's' || e.key === 'ArrowDown') keys.s = true;
+            if (e.key.toLowerCase() === 'a' || e.key === 'ArrowLeft') keys.a = true;
+            if (e.key.toLowerCase() === 'd' || e.key === 'ArrowRight') keys.d = true;
         });
 
         window.addEventListener('keyup', (e) => {
-            if(e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') keys.w = false;
-            if(e.key === 's' || e.key === 'S' || e.key === 'ArrowDown') keys.s = false;
-            if(e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') keys.a = false;
-            if(e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') keys.d = false;
+            if (e.key.toLowerCase() === 'w' || e.key === 'ArrowUp') keys.w = false;
+            if (e.key.toLowerCase() === 's' || e.key === 'ArrowDown') keys.s = false;
+            if (e.key.toLowerCase() === 'a' || e.key === 'ArrowLeft') keys.a = false;
+            if (e.key.toLowerCase() === 'd' || e.key === 'ArrowRight') keys.d = false;
         });
+
+        // TOUCH STEUERUNG (HANDY)
+        const bindTouch = (id, key) => {
+            const btn = document.getElementById(id);
+            const start = (e) => { e.preventDefault(); keys[key] = true; };
+            const end = (e) => { e.preventDefault(); keys[key] = false; };
+
+            btn.addEventListener('touchstart', start, { passive: false });
+            btn.addEventListener('touchend', end, { passive: false });
+            btn.addEventListener('touchcancel', end, { passive: false });
+            
+            // Für Mausklicks auf dem PC-Test
+            btn.addEventListener('mousedown', start);
+            btn.addEventListener('mouseup', end);
+        };
+
+        bindTouch('btn-w', 'w');
+        bindTouch('btn-s', 's');
+        bindTouch('btn-a', 'a');
+        bindTouch('btn-d', 'd');
 
         // UI Updates
         const uiSpeed = document.getElementById('ui-speed');
@@ -207,20 +272,18 @@
 
         function animate() {
             requestAnimationFrame(animate);
-            const dt = clock.getDelta();
+            const dt = Math.min(clock.getDelta(), 0.1);
             const time = clock.getElapsedTime();
 
-            // --- V8 MOTOR PHYSIK ---
+            // V8 Engine Logic
             if (keys.w) physics.throttle = THREE.MathUtils.lerp(physics.throttle, 1, dt * 2);
             else if (keys.s) physics.throttle = THREE.MathUtils.lerp(physics.throttle, -0.5, dt * 2);
             else physics.throttle = THREE.MathUtils.lerp(physics.throttle, 0, dt * 4);
 
-            // Beschleunigung & Widerstand (Drag)
             let thrust = physics.throttle * physics.acceleration;
             physics.speed += thrust * dt;
-            physics.speed *= Math.pow(physics.drag, dt * 60); // Realistischer Widerstand
+            physics.speed *= Math.pow(physics.drag, dt * 60);
 
-            // Lenkung (Abhängig von der Geschwindigkeit, Boot lenkt sich schlecht wenn es steht)
             let steerDir = 0;
             if (keys.a) steerDir = 1;
             if (keys.d) steerDir = -1;
@@ -228,35 +291,24 @@
             let turnEffectiveness = Math.min(Math.abs(physics.speed) / 5, 1);
             physics.heading += steerDir * turnEffectiveness * dt * 1.5;
 
-            // Boot Position updaten
             boat.position.x += Math.sin(physics.heading) * physics.speed * dt;
             boat.position.z += Math.cos(physics.heading) * physics.speed * dt;
             boat.rotation.y = physics.heading;
 
-            // --- REALISTISCHE BOOTS-DYNAMIK (Pitch & Roll) ---
-            // Bug hebt sich an beim Beschleunigen (Planing)
+            // Dynamics
             let speedRatio = Math.abs(physics.speed) / physics.maxSpeed;
-            let pitch = 0;
-            if (physics.speed > 1) {
-                // Hebt sich an, senkt sich dann leicht wenn es gleitet
-                pitch = Math.sin(Math.min(speedRatio * 2.5, 1) * Math.PI) * 0.15; 
-            }
-            // Boot legt sich in die Kurve (Roll)
+            let pitch = (physics.speed > 1) ? Math.sin(Math.min(speedRatio * 2.5, 1) * Math.PI) * 0.15 : 0;
             let roll = steerDir * turnEffectiveness * speedRatio * 0.4;
             
-            // Sanftes anwenden der Rotation
             boat.rotation.x = THREE.MathUtils.lerp(boat.rotation.x, -pitch, dt * 5);
             boat.rotation.z = THREE.MathUtils.lerp(boat.rotation.z, -roll, dt * 5);
+            boat.position.y = Math.sin(boat.position.x * 0.1 + time) * 0.2;
 
-            // Wasserhöhe am Boot für das "Bobbing"
-            boat.position.y = Math.sin(boat.position.x * 0.1 + time) * 0.3 + Math.cos(boat.position.z * 0.1 + time) * 0.3;
-
-            // --- WASSER VERFORMUNG & WAVES (Wake) ---
-            // Speichere Boot-Position für Bugwellen
+            // Dynamic Waves
             wakeTimer += dt;
-            if (wakeTimer > 0.2 && Math.abs(physics.speed) > 2) {
-                wakes.push({ x: boat.position.x, z: boat.position.z, time: time, size: Math.abs(physics.speed) * 0.05 });
-                if (wakes.length > 20) wakes.shift(); // Nur die letzten Wellen behalten für Performance
+            if (wakeTimer > 0.25 && Math.abs(physics.speed) > 2) {
+                wakes.push({ x: boat.position.x, z: boat.position.z, time: time, size: Math.abs(physics.speed) * 0.04 });
+                if (wakes.length > 15) wakes.shift();
                 wakeTimer = 0;
             }
 
@@ -265,87 +317,50 @@
                 let vx = originalPositions[i] + water.position.x;
                 let vz = originalPositions[i+2] + water.position.z;
                 
-                // Grundwelle (Ozean)
-                let h = Math.sin(vx * 0.1 + time * 2) * 0.3 + Math.cos(vz * 0.1 + time * 1.5) * 0.3;
+                let h = Math.sin(vx * 0.1 + time * 2) * 0.2 + Math.cos(vz * 0.1 + time * 1.5) * 0.2;
 
-                // Dynamische Bootswellen (Physik!)
                 for (let w of wakes) {
                     let dx = vx - w.x;
                     let dz = vz - w.z;
                     let dist = Math.sqrt(dx*dx + dz*dz);
                     let age = time - w.time;
-                    let waveRadius = age * 4.0; // Geschwindigkeit der Wellenausbreitung
+                    let waveRadius = age * 4.0;
                     
                     let diff = Math.abs(dist - waveRadius);
-                    if (diff < 3.0 && age < 5.0) { // Welle verblasst nach 5 Sekunden
-                        h += Math.sin((diff - 3.0) * Math.PI) * w.size * (1 - age/5.0);
+                    if (diff < 3.0 && age < 4.0) {
+                        h += Math.sin((diff - 3.0) * Math.PI) * w.size * (1 - age/4.0);
                     }
                 }
-                positions[i+1] = h; // Y-Achse (Höhe) aktualisieren
+                positions[i+1] = h;
             }
             waterGeometry.attributes.position.needsUpdate = true;
-            waterGeometry.computeVertexNormals(); // Wichtig für die Lichtreflexion auf den Wellen!
+            waterGeometry.computeVertexNormals();
 
-            // --- GISCHT / PARTIKEL (Foam am Heck) ---
-            if (physics.speed > 3) {
-                const p = particles[particleIndex];
-                p.mesh.position.set(
-                    boat.position.x - Math.sin(physics.heading) * 2.5 + (Math.random()-0.5),
-                    boat.position.y,
-                    boat.position.z - Math.cos(physics.heading) * 2.5 + (Math.random()-0.5)
-                );
-                p.mesh.visible = true;
-                p.life = 0.5 + Math.random() * 0.5;
-                p.maxLife = p.life;
-                particleIndex = (particleIndex + 1) % particleCount;
-            }
-
-            // Partikel animieren
-            for(let p of particles) {
-                if (p.mesh.visible) {
-                    p.life -= dt;
-                    p.mesh.scale.setScalar(1 + (p.maxLife - p.life) * 2);
-                    p.mesh.material.opacity = (p.life / p.maxLife) * 0.8;
-                    if (p.life <= 0) p.mesh.visible = false;
-                }
-            }
-
-            // --- KAMERA VERFOLGUNG ---
-            // Kamera bleibt hinter und leicht über dem Boot
+            // Camera
             const camOffset = new THREE.Vector3(
                 -Math.sin(physics.heading) * 12,
-                4 + pitch * 5, // Kamera geht hoch wenn Bug hochgeht
+                4 + pitch * 4,
                 -Math.cos(physics.heading) * 12
             );
-            const targetCamPos = boat.position.clone().add(camOffset);
-            camera.position.lerp(targetCamPos, dt * 5);
+            camera.position.lerp(boat.position.clone().add(camOffset), dt * 5);
             camera.lookAt(boat.position.x, boat.position.y + 1, boat.position.z);
 
-            // Wasser-Gitter mit dem Boot bewegen (für unendliches Fahren)
-            // Wir springen in runden Schritten, damit die Textur nicht ruckelt
             water.position.x = Math.round(boat.position.x / 10) * 10;
             water.position.z = Math.round(boat.position.z / 10) * 10;
 
-            // --- UI UPDATES ---
-            let displaySpeed = Math.abs(physics.speed * 3.6).toFixed(0); // m/s zu km/h
-            uiSpeed.innerHTML = `${displaySpeed} <span style="font-size:16px">km/h</span>`;
-            
-            // RPM Berechnung (Idle 800, Max 5500)
-            let targetRpm = 800 + Math.abs(physics.throttle) * 4700;
-            physics.rpm = THREE.MathUtils.lerp(physics.rpm, targetRpm, dt * 3);
-            uiRpm.innerText = physics.rpm.toFixed(0);
+            // UI
+            uiSpeed.innerHTML = `${Math.abs(physics.speed * 3.6).toFixed(0)} <span style="font-size:12px">km/h</span>`;
+            uiRpm.innerText = (800 + Math.abs(physics.throttle) * 4700).toFixed(0);
 
             renderer.render(scene, camera);
         }
 
-        // Fenstergröße anpassen
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // Start
         animate();
     </script>
 </body>
